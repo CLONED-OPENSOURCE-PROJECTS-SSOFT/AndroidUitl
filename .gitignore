@@ -25,3 +25,11 @@ proguard/
 
 # Log Files
 *.log
+
+/build
+.idea/
+
+
+
+/captures
+
