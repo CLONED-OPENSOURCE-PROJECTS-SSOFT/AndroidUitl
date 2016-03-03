@@ -29,6 +29,7 @@ public class BaseAlertDialog extends DialogFragment {
         private static final String MULTI_CHOICE_ITEMS = "multi_choice_items";
         private static final String DRAWABLE_ID = "drawable_id";
         private static final String SURE_CLICK = "sure_click";
+        private static final String CANCEL_CLICK = "cancel_click";
         private static final String SELECT_ITEM = "choice_item";
         private static final String SINGLE_CHOICE = "single_choice";
         private static final String MULTI_CHOICE = "multi_choice";
@@ -91,6 +92,11 @@ public class BaseAlertDialog extends DialogFragment {
         return this;
     }
 
+    public BaseAlertDialog setOnCancelClickListener(OnCancelClickListener onCancelClickListener) {
+        mBundle.putSerializable(Type.CANCEL_CLICK, onCancelClickListener);
+        return this;
+    }
+
     public BaseAlertDialog setOnItemSelectListener(OnItemSelectListener onItemSelectListener) {
         mBundle.putSerializable(Type.SELECT_ITEM, onItemSelectListener);
         return this;
@@ -106,10 +112,8 @@ public class BaseAlertDialog extends DialogFragment {
             return;
         }
         if (activity instanceof FragmentActivity) {
-            Activity act = activity;
             this.setArguments(mBundle);
-
-            FragmentManager fragmentManager = ((FragmentActivity) act).getSupportFragmentManager();
+            FragmentManager fragmentManager = ((FragmentActivity) activity).getSupportFragmentManager();
             FragmentTransaction transaction = fragmentManager.beginTransaction();
             Fragment fragment = fragmentManager.findFragmentByTag(TAG);
             if (fragment != null) {
@@ -126,28 +130,39 @@ public class BaseAlertDialog extends DialogFragment {
         final Bundle bundle = getArguments();
         final android.support.v7.app.AlertDialog.Builder builder = new android.support.v7.app.AlertDialog.Builder(getActivity());
         builder.setTitle(bundle.getString(Type.TITLE))
-                .setMessage(bundle.getString(Type.MESSAGE))
-                .setIcon(getActivity().getResources().getDrawable(bundle.getInt(Type.DRAWABLE_ID)))
-                .setPositiveButton(bundle.getString(Type.POSITIVE_STR), new DialogInterface.OnClickListener() {
-                    private final OnSureClickListener listener = (OnSureClickListener) bundle.getSerializable(Type.SURE_CLICK);
+                .setMessage(bundle.getString(Type.MESSAGE));
+        if (bundle.getInt(Type.DRAWABLE_ID) > 0) {
+            builder.setIcon(getActivity().getResources().getDrawable(bundle.getInt(Type.DRAWABLE_ID)));
+        }
+        builder.setPositiveButton(bundle.getString(Type.POSITIVE_STR), new DialogInterface.OnClickListener() {
+            private final Serializable listener =  bundle.getSerializable(Type.SURE_CLICK);
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if (listener != null && listener instanceof OnSureClickListener)
+                    ((OnSureClickListener)listener).onClick(which);
+                BaseAlertDialog.this.dismiss();
+            }
+        })
+                .setNegativeButton(bundle.getString(Type.NEGATIVE_STR), new DialogInterface.OnClickListener() {
+                    private final Serializable listener = bundle.getSerializable(Type.CANCEL_CLICK);
 
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        if (listener != null)
-                            listener.onClick(which);
+                        if (listener != null && listener instanceof OnCancelClickListener)
+                            ((OnCancelClickListener) listener).onClick(which);
                         BaseAlertDialog.this.dismiss();
                     }
-                })
-                .setNegativeButton(bundle.getString(Type.NEGATIVE_STR), null);
+                });
         String[] selectItems = bundle.getStringArray(Type.SELECT_ITEMS);
         if (selectItems != null && selectItems.length != 0) {
             builder.setItems(selectItems, new DialogInterface.OnClickListener() {
-                private final OnItemSelectListener listener = (OnItemSelectListener) bundle.getSerializable(Type.SELECT_ITEM);
+                private final Serializable listener = bundle.getSerializable(Type.SELECT_ITEM);
 
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    if (listener != null)
-                        listener.onSelect(which);
+                    if (listener != null && listener instanceof OnItemSelectListener)
+                        ((OnItemSelectListener) listener).onSelect(which);
                     BaseAlertDialog.this.dismiss();
                 }
             });
@@ -155,30 +170,33 @@ public class BaseAlertDialog extends DialogFragment {
         String[] singleItems = bundle.getStringArray(Type.SINGLE_CHOICE_ITEMS);
         if (singleItems != null && singleItems.length != 0) {
             builder.setSingleChoiceItems(singleItems, -1, new DialogInterface.OnClickListener() {
-                private final OnSingleChoiceListener listener = (OnSingleChoiceListener) bundle.getSerializable(Type.SINGLE_CHOICE);
+                private final Serializable listener =  bundle.getSerializable(Type.SINGLE_CHOICE);
 
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    if (listener != null)
-                        listener.onSingleChoice(which);
+                    if (listener != null && listener instanceof OnSingleChoiceListener)
+                        ((OnSingleChoiceListener)listener).onSingleChoice(which);
                 }
             });
         }
         String[] multiItems = bundle.getStringArray(Type.MULTI_CHOICE_ITEMS);
         if (multiItems != null && multiItems.length != 0) {
             builder.setMultiChoiceItems(bundle.getStringArray(Type.MULTI_CHOICE_ITEMS), null, new DialogInterface.OnMultiChoiceClickListener() {
-                private final OnMultiChoiceListener listener = (OnMultiChoiceListener) bundle.getSerializable(Type.MULTI_CHOICE);
+                private final Serializable listener =  bundle.getSerializable(Type.MULTI_CHOICE);
 
                 @Override
                 public void onClick(DialogInterface dialog, int which, boolean isChecked) {
-                    if (listener != null)
-                        listener.onMultiChoice(which, isChecked);
+                    if (listener != null && listener instanceof OnMultiChoiceListener)
+                        ((OnMultiChoiceListener)listener).onMultiChoice(which, isChecked);
                 }
             });
         }
         return builder.create();
     }
 
+    public interface OnCancelClickListener extends Serializable {
+        void onClick(int which);
+    }
 
     public interface OnSureClickListener extends Serializable {
         void onClick(int which);
