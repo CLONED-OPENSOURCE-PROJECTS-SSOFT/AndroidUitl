@@ -16,6 +16,7 @@ import java.lang.reflect.Field;
  * Created by zhengxiaoyong on 16/2/24.
  */
 public class BitmapDecodeUtil {
+    private static final int DECODE_BUFFER_SIZE = 16 * 1024;
     private static final int DENSITY_240 = 240;
     private static final int DENSITY_400 = 400;
     private static final float SCALE_FACTOR = 0.8f;
@@ -29,6 +30,7 @@ public class BitmapDecodeUtil {
         options.inPurgeable = true;
         options.inInputShareable = true;
         options.inJustDecodeBounds = false;
+        options.inTempStorage =new byte[DECODE_BUFFER_SIZE];
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.GINGERBREAD_MR1) {
             Field field = null;
             try {
